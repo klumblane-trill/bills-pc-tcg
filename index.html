@@ -3724,7 +3724,10 @@
         <div class="stage-status-pill" id="stageStatusPill">
           <span>🖱️ Drag or use ◀ ▶ to revolve • Click centered card to inspect</span>
         </div>
-        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+          <button type="button" class="btn btn-sm" id="btnOpenRingShelfModal" style="border-color:rgba(245,158,11,0.55); color:#fde68a; background:rgba(245,158,11,0.12); font-weight:700;" title="Customize which cards appear on your 3D Display Shelf">
+            🏆 Ring Display: <span id="ringShelfBtnLabel">All Cards</span>
+          </button>
           <button class="btn btn-sm" id="btnToggleAutoSpin">
             <span id="autoSpinIcon">▶</span> Auto-Revolve: <span id="autoSpinStatus">OFF</span>
           </button>
@@ -4475,27 +4478,23 @@
             <option value="number_asc">Sort: Card / Set Number (#)</option>
           </select>
 
+          <select id="searchLangSelect" class="form-control" style="width:155px; font-weight:600;" title="Filter search results by card language">
+            <option value="en">🌐 English</option>
+            <option value="ja">🇯🇵 Japanese</option>
+            <option value="zh-tw">🇨🇳 Chinese</option>
+            <option value="ko">🇰🇷 Korean</option>
+            <option value="fr">🇫🇷 French</option>
+            <option value="de">🇩🇪 German</option>
+            <option value="es">🇪🇸 Spanish</option>
+            <option value="it">🇮🇹 Italian</option>
+            <option value="pt">🇧🇷 Portuguese</option>
+          </select>
+          <button type="button" class="btn btn-sm" id="btnSetDefaultLang" style="padding:7px 10px; font-size:0.74rem; border-color:rgba(250,204,21,0.45); color:#fde68a; white-space:nowrap;" title="Save selected language as your Default Search Language">⭐ Default: EN</button>
+
           <div class="search-input-wrap">
-            <input type="text" id="liveSearchInput" placeholder="Search card (Pikachu, Charizard ex), modern set (Surging Sparks, Prismatic Evolutions, 151), code (#065), or Kayou code..." />
+            <input type="text" id="liveSearchInput" placeholder="Search card (Pikachu, Charizard ex), set, or number (#48)..." />
           </div>
           <button class="btn btn-primary" id="btnExecuteSearch">Search TCGs</button>
-        </div>
-
-        <div class="quick-chips">
-          <span style="font-size:0.72rem; color:var(--text-muted); font-weight:600;">Popular & Modern:</span>
-          <button class="quick-chip anniversary-chip" data-set="23821" data-tcg="Pokemon">SV: Prismatic Evolutions</button>
-          <button class="quick-chip anniversary-chip" data-set="23651" data-tcg="Pokemon">SV08: Surging Sparks</button>
-          <button class="quick-chip anniversary-chip" data-set="24073" data-tcg="Pokemon">SV09: Journey Together</button>
-          <button class="quick-chip anniversary-chip" data-set="24269" data-tcg="Pokemon">SV10: Destined Rivals</button>
-          <button class="quick-chip" data-set="23237" data-tcg="Pokemon">SV: 151</button>
-          <button class="quick-chip" data-set="23537" data-tcg="Pokemon">SV07: Stellar Crown</button>
-          <button class="quick-chip" data-set="23473" data-tcg="Pokemon">SV06: Twilight Masquerade</button>
-          <button class="quick-chip" data-set="24722" data-tcg="Pokemon">ME: 30th Celebration</button>
-          <button class="quick-chip" data-set="ALL_PROMOS" data-tcg="Pokemon">All Promos (1999-2026)</button>
-          <button class="quick-chip" data-set="NRCCNA" data-tcg="NarutoKayou">Kayou: Ninja Age</button>
-          <button class="quick-chip anniversary-chip" data-query="NRCCNA-XR-002L5" data-tcg="NarutoKayou">Sasuke XR /720</button>
-          <button class="quick-chip ygo-chip" data-set="Legend of Blue Eyes White Dragon" data-tcg="YuGiOh">YGO: Legend of Blue Eyes</button>
-          <button class="quick-chip" data-query="The One Ring" data-tcg="MTG">MTG: The One Ring</button>
         </div>
       </div>
 
@@ -5525,6 +5524,57 @@
             <button type="button" class="btn btn-primary btn-sm" id="btnConfirmTcgpImport" style="padding:8px 18px; font-weight:700;">✅ Import Into Vault</button>
           </div>
           <div id="tcgpImportPreviewList" style="max-height:240px; overflow-y:auto; display:flex; flex-direction:column; gap:6px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       MODAL: 3D DISPLAY SHELF CURATOR (CUSTOMIZE 3D RING CARDS)
+       ============================================================ -->
+  <div class="modal-backdrop" id="ringShelfModalBackdrop" style="z-index: 120;">
+    <div class="search-modal" style="max-width: 780px; max-height: 86vh;">
+      <div class="modal-header">
+        <div class="modal-title">
+          <span style="font-size:1.15rem;">🏆</span>
+          <span>Customize 3D Display Shelf (Ring Cards)</span>
+        </div>
+        <button class="modal-close-btn" id="btnCloseRingShelfModal">&times;</button>
+      </div>
+
+      <div style="padding:16px 22px; display:flex; flex-direction:column; gap:12px; overflow:hidden; flex:1;">
+        <div style="font-size:0.79rem; color:var(--text-secondary);">
+          Choose a preset or check specific cards to display on your 3D Showcase Shelf. Your selection saves automatically.
+        </div>
+
+        <!-- Presets Bar -->
+        <div style="display:flex; gap:8px; flex-wrap:wrap;" id="ringShelfPresetsBar">
+          <button type="button" class="btn btn-sm ring-preset-btn" data-ring-mode="top20">💎 Top 20 Most Valuable</button>
+          <button type="button" class="btn btn-sm ring-preset-btn" data-ring-mode="top10">👑 Top 10 Most Valuable</button>
+          <button type="button" class="btn btn-sm ring-preset-btn" data-ring-mode="graded">🏆 Graded Slabs Only</button>
+          <button type="button" class="btn btn-sm ring-preset-btn" data-ring-mode="all">🌐 All Cards</button>
+          <button type="button" class="btn btn-sm ring-preset-btn" data-ring-mode="custom">☑️ Custom Selection</button>
+        </div>
+
+        <!-- Search & Bulk Select -->
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+          <input type="text" id="ringShelfSearchInput" class="form-control" placeholder="Search your vault by card name, set, or number..." style="flex:1; min-width:220px;" />
+          <div style="display:flex; gap:6px; align-items:center;">
+            <button type="button" class="btn btn-sm" id="btnRingSelectVisible">Select Visible</button>
+            <button type="button" class="btn btn-sm" id="btnRingClearSelection" style="color:var(--loss-red);">Clear All</button>
+          </div>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.76rem; color:var(--text-secondary);">
+          <span id="ringShelfSelectionStats" style="font-weight:700; color:var(--accent-cyan);">0 cards shown on 3D Ring</span>
+          <span style="color:var(--text-muted);">Checking/unchecking a card switches to Custom Selection</span>
+        </div>
+
+        <!-- Checklist -->
+        <div id="ringShelfCardList" style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:6px; padding-right:4px; min-height:200px;"></div>
+
+        <div style="display:flex; justify-content:flex-end; gap:10px; padding-top:10px; border-top:1px solid rgba(255,255,255,0.1);">
+          <button type="button" class="btn btn-primary btn-sm" id="btnDoneRingShelfModal" style="padding:8px 20px; font-weight:700;">✅ Save &amp; Apply to 3D Ring</button>
         </div>
       </div>
     </div>
@@ -6884,15 +6934,73 @@
       }, 150);
     });
 
+    const RING_SHELF_STORAGE_KEY = 'tcg_vault_ring_shelf_v1';
+    let ringShelfConfig = {
+      mode: 'all',
+      selectedIds: []
+    };
+
+    function updateRingShelfButtonUI() {
+      const labelEl = document.getElementById('ringShelfBtnLabel');
+      if (!labelEl) return;
+      if (ringShelfConfig.mode === 'top20') labelEl.textContent = 'Top 20 Valuable';
+      else if (ringShelfConfig.mode === 'top10') labelEl.textContent = 'Top 10 Valuable';
+      else if (ringShelfConfig.mode === 'graded') labelEl.textContent = 'Graded Slabs';
+      else if (ringShelfConfig.mode === 'custom') labelEl.textContent = `Custom (${getRingDisplayCards().length})`;
+      else labelEl.textContent = 'All Cards';
+    }
+
+    function loadRingShelfConfig() {
+      try {
+        const raw = localStorage.getItem(RING_SHELF_STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && typeof parsed === 'object') {
+            ringShelfConfig.mode = parsed.mode || 'all';
+            ringShelfConfig.selectedIds = Array.isArray(parsed.selectedIds) ? parsed.selectedIds : [];
+          }
+        }
+      } catch (e) {}
+      updateRingShelfButtonUI();
+    }
+
+    function saveRingShelfConfig() {
+      try {
+        localStorage.setItem(RING_SHELF_STORAGE_KEY, JSON.stringify(ringShelfConfig));
+      } catch (e) {}
+      updateRingShelfButtonUI();
+    }
+
+    function getRingDisplayCards() {
+      const base = filteredCollection;
+      if (!ringShelfConfig || ringShelfConfig.mode === 'all') return base;
+      if (ringShelfConfig.mode === 'top20') {
+        return base.slice().sort((a, b) => (Number(b.marketPrice) || 0) - (Number(a.marketPrice) || 0)).slice(0, 20);
+      }
+      if (ringShelfConfig.mode === 'top10') {
+        return base.slice().sort((a, b) => (Number(b.marketPrice) || 0) - (Number(a.marketPrice) || 0)).slice(0, 10);
+      }
+      if (ringShelfConfig.mode === 'graded') {
+        return base.filter(c => c.isGraded || c.gradingStatus === 'graded');
+      }
+      if (ringShelfConfig.mode === 'custom') {
+        const idSet = new Set(ringShelfConfig.selectedIds || []);
+        return base.filter(c => idSet.has(c.id));
+      }
+      return base;
+    }
+
     function getCarouselRingMetrics() {
-      const baseCount = Math.max(collection.length, filteredCollection.length, 12);
+      const ringCards = getRingDisplayCards();
+      const count = ringCards.length;
+      const baseCount = count >= VIRTUAL_RING_MIN_CARDS ? Math.max(count, 48) : Math.max(count, 1);
       const radius = getCarouselRadius(baseCount);
       const angleStep = 360 / baseCount;
       return { baseCount, radius, angleStep };
     }
 
     function isVirtualRingMode() {
-      return filteredCollection.length >= VIRTUAL_RING_MIN_CARDS;
+      return getRingDisplayCards().length >= VIRTUAL_RING_MIN_CARDS;
     }
 
     function createCarouselCardSlot(card, index, itemAngle, radius, virtualSlot = null) {
@@ -7050,7 +7158,8 @@
     }
 
     function syncVirtualRingSlots(force = false) {
-      const count = filteredCollection.length;
+      const ringCards = getRingDisplayCards();
+      const count = ringCards.length;
       if (count < VIRTUAL_RING_MIN_CARDS) return;
       const ringEl = document.getElementById('carouselRing');
       if (!ringEl) return;
@@ -7077,7 +7186,7 @@
       for (let s = minSlot; s <= maxSlot; s++) {
         if (existingSlots.has(s)) continue;
         const cardIndex = ((s % count) + count) % count;
-        const card = filteredCollection[cardIndex];
+        const card = ringCards[cardIndex];
         if (!card) continue;
         const slot = createCarouselCardSlot(card, cardIndex, s * angleStep, radius, s);
         ringEl.appendChild(slot);
@@ -7096,11 +7205,23 @@
         emptyOverlay.style.display = collection.length === 0 ? 'flex' : 'none';
       }
 
-      const count = filteredCollection.length;
+      const ringCards = getRingDisplayCards();
+      const count = ringCards.length;
+      if (activeCardIndex >= count) activeCardIndex = 0;
+
       if (count === 0) {
-        document.getElementById('bannerCardTitle').textContent = collection.length === 0 ? 'Your Vault is Empty' : 'No cards match filter';
-        document.getElementById('bannerCardSub').textContent = collection.length === 0 ? 'Click "Deposit / Search Cards" to add cards, or load sample demo' : 'Click "Search & Add Cards" to add cards from TCGPlayer';
+        if (collection.length === 0) {
+          document.getElementById('bannerCardTitle').textContent = 'Your Vault is Empty';
+          document.getElementById('bannerCardSub').textContent = 'Click "Deposit / Search Cards" to add cards, or load sample demo';
+        } else if (ringShelfConfig.mode === 'custom' || ringShelfConfig.mode === 'graded') {
+          document.getElementById('bannerCardTitle').textContent = '3D Display Shelf is Empty';
+          document.getElementById('bannerCardSub').textContent = 'Click "Ring Display" in the top right to select cards for your shelf';
+        } else {
+          document.getElementById('bannerCardTitle').textContent = 'No cards match filter';
+          document.getElementById('bannerCardSub').textContent = 'Click "Search & Add Cards" to add cards from TCGPlayer';
+        }
         document.getElementById('orbitIndexIndicator').textContent = '0 / 0';
+        updateRingShelfButtonUI();
         return;
       }
 
@@ -7108,17 +7229,19 @@
         syncVirtualRingSlots(true);
       } else {
         const { radius, angleStep } = getCarouselRingMetrics();
-        filteredCollection.forEach((card, index) => {
+        ringCards.forEach((card, index) => {
           const slot = createCarouselCardSlot(card, index, index * angleStep, radius, null);
           ringEl.appendChild(slot);
         });
       }
 
       updateActiveBanner();
+      updateRingShelfButtonUI();
     }
 
     function rotateToVirtualSlot(virtualSlot) {
-      const count = filteredCollection.length;
+      const ringCards = getRingDisplayCards();
+      const count = ringCards.length;
       if (count === 0) return;
       const { angleStep } = getCarouselRingMetrics();
       activeCardIndex = ((virtualSlot % count) + count) % count;
@@ -7131,7 +7254,8 @@
     }
 
     function rotateToCardIndex(newIndex) {
-      const count = filteredCollection.length;
+      const ringCards = getRingDisplayCards();
+      const count = ringCards.length;
       if (count === 0) return;
       const { angleStep } = getCarouselRingMetrics();
       const normalizedIndex = ((newIndex % count) + count) % count;
@@ -7156,8 +7280,10 @@
     }
 
     function snapRingToActiveIndex() {
-      const count = filteredCollection.length;
+      const ringCards = getRingDisplayCards();
+      const count = ringCards.length;
       if (count === 0) return;
+      if (activeCardIndex >= count) activeCardIndex = 0;
       const { angleStep } = getCarouselRingMetrics();
       targetRingAngle = -activeCardIndex * angleStep;
       currentRingAngle = targetRingAngle;
@@ -7181,9 +7307,10 @@
     }
 
     function updateActiveBanner() {
-      const count = filteredCollection.length;
+      const ringCards = getRingDisplayCards();
+      const count = ringCards.length;
       if (count === 0) return;
-      const card = filteredCollection[activeCardIndex];
+      const card = ringCards[activeCardIndex] || ringCards[0];
       if (!card) return;
 
       const dupInfo = getDuplicateCopyBadgeInfo(card);
@@ -7222,18 +7349,20 @@
       const virtualMode = isVirtualRingMode();
 
       if (autoSpinEnabled && !isDraggingRing && virtualMode) {
-        const count = filteredCollection.length;
-        // Constant angular speed: exactly (angleStep / SECONDS_PER_CARD_AUTO_SPIN) degrees per second regardless of collection size
-        const degPerSec = angleStep / SECONDS_PER_CARD_AUTO_SPIN;
-        targetRingAngle -= degPerSec * deltaTime;
+        const count = getRingDisplayCards().length;
+        if (count > 0) {
+          // Constant angular speed: exactly (angleStep / SECONDS_PER_CARD_AUTO_SPIN) degrees per second regardless of collection size
+          const degPerSec = angleStep / SECONDS_PER_CARD_AUTO_SPIN;
+          targetRingAngle -= degPerSec * deltaTime;
 
-        const nearestSlot = Math.round(-targetRingAngle / angleStep);
-        const nearestIdx = ((nearestSlot % count) + count) % count;
-        if (nearestIdx !== activeCardIndex) {
-          activeCardIndex = nearestIdx;
-          updateFrontHighlight();
-          updateActiveBanner();
-          updateInspectorPanel();
+          const nearestSlot = Math.round(-targetRingAngle / angleStep);
+          const nearestIdx = ((nearestSlot % count) + count) % count;
+          if (nearestIdx !== activeCardIndex) {
+            activeCardIndex = nearestIdx;
+            updateFrontHighlight();
+            updateActiveBanner();
+            updateInspectorPanel();
+          }
         }
       }
 
@@ -10579,7 +10708,8 @@
     const bannerCardBanner = document.getElementById('activeCardBanner');
     if (bannerCardBanner) {
       bannerCardBanner.addEventListener('click', () => {
-        const currentCard = filteredCollection[activeCardIndex];
+        const ringCards = getRingDisplayCards();
+        const currentCard = ringCards[activeCardIndex];
         if (currentCard) openCardDetailModal(currentCard);
       });
     }
@@ -13278,8 +13408,14 @@
       }
     }
 
+    function getActiveCollectionForCurrentView() {
+      return (typeof activeView !== 'undefined' && activeView === 'carousel')
+        ? getRingDisplayCards()
+        : filteredCollection;
+    }
+
     function updateInspectorPanel() {
-      const card = filteredCollection[activeCardIndex];
+      const card = getActiveCollectionForCurrentView()[activeCardIndex];
       if (!card) {
         const inspImg = document.getElementById('inspImg');
         if (inspImg) inspImg.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="420" viewBox="0 0 300 420"><rect width="300" height="420" rx="14" fill="%231e293b"/><text x="150" y="210" fill="%2364748b" font-family="sans-serif" font-size="16" text-anchor="middle">No Card Selected</text></svg>';
@@ -14044,10 +14180,145 @@
       return [];
     }
 
-    async function searchPokemon(query, setFilterVal = '', sortOrder = 'price_desc') {
+    const DEFAULT_SEARCH_LANG_KEY = 'tcg_vault_default_lang_v1';
+    const LANG_LABELS = {
+      'en': 'English',
+      'ja': 'Japanese',
+      'zh-tw': 'Chinese',
+      'ko': 'Korean',
+      'fr': 'French',
+      'de': 'German',
+      'es': 'Spanish',
+      'it': 'Italian',
+      'pt': 'Portuguese'
+    };
+    let defaultSearchLanguage = 'en';
+
+    function loadDefaultSearchLanguage() {
+      try {
+        const saved = localStorage.getItem(DEFAULT_SEARCH_LANG_KEY);
+        if (saved && LANG_LABELS[saved]) defaultSearchLanguage = saved;
+      } catch (e) {}
+      const sel = document.getElementById('searchLangSelect');
+      if (sel) sel.value = defaultSearchLanguage;
+      updateDefaultLangBtnUI();
+    }
+
+    function updateDefaultLangBtnUI() {
+      const btn = document.getElementById('btnSetDefaultLang');
+      if (btn) {
+        const shortCode = defaultSearchLanguage.split('-')[0].toUpperCase();
+        btn.textContent = `⭐ Default: ${shortCode}`;
+      }
+    }
+
+    async function searchPokemon(query, setFilterVal = '', sortOrder = 'price_desc', lang = 'en') {
       const qLower = query.toLowerCase().trim();
       const results = [];
       let queryNumberTokens = [];
+
+      // Non-English Pokémon search via TCGdex multi-language endpoints (+ JP exclusives)
+      if (lang && lang !== 'en') {
+        const langLabel = LANG_LABELS[lang] || lang.toUpperCase();
+        if (lang === 'ja' && TCGCSV_DATA && Array.isArray(TCGCSV_DATA.cards)) {
+          for (const rec of TCGCSV_DATA.cards) {
+            const setMeta = TCGPLAYER_SETS_MAP.get(Number(rec.g));
+            const isJp = (setMeta?.name || '').includes('JP Exclusive') || (rec.n || '').includes('(JP');
+            if (isJp && (!qLower || (rec.n || '').toLowerCase().includes(qLower) || (setMeta?.name || '').toLowerCase().includes(qLower))) {
+              const cardObj = expandTcgcsvCard(rec);
+              cardObj.language = 'Japanese';
+              results.push(cardObj);
+            }
+          }
+        }
+        try {
+          const searchTerm = query.trim() || 'Pikachu';
+          let briefs = [];
+          const res = await fetch(`https://api.tcgdex.net/v2/${encodeURIComponent(lang)}/cards?name=${encodeURIComponent(searchTerm)}`);
+          if (res.ok) {
+            briefs = (await res.json() || []).filter(b => b.image).slice(0, 24);
+          }
+          // If user typed an English name (e.g. "Charizard") while searching Japanese/Korean/Chinese/European, translate via PokéAPI or English IDs
+          if (briefs.length === 0 && /^[a-z0-9\s\-']+$/i.test(searchTerm)) {
+            if (lang === 'ja' || lang === 'zh-tw' || lang === 'ko') {
+              try {
+                const baseWord = searchTerm.toLowerCase().replace(/\b(ex|gx|v|vmax|vstar|mega|radiant|dark|light|alolan|galarian|hisuian|paldean)\b/g, '').trim().split(/\s+/)[0];
+                if (baseWord) {
+                  const pApiRes = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${encodeURIComponent(baseWord)}`);
+                  if (pApiRes.ok) {
+                    const pApiData = await pApiRes.json();
+                    const targetLangCode = lang === 'zh-tw' ? 'zh-Hant' : (lang === 'ja' ? 'ja-Hrkt' : lang);
+                    const nameObj = (pApiData.names || []).find(n => n.language?.name === (lang === 'ja' ? 'ja' : targetLangCode))
+                      || (pApiData.names || []).find(n => n.language?.name === targetLangCode);
+                    if (nameObj?.name) {
+                      const locRes = await fetch(`https://api.tcgdex.net/v2/${encodeURIComponent(lang)}/cards?name=${encodeURIComponent(nameObj.name)}`);
+                      if (locRes.ok) briefs = (await locRes.json() || []).filter(b => b.image).slice(0, 24);
+                    }
+                  }
+                }
+              } catch (e) {}
+            }
+            if (briefs.length === 0) {
+              const enRes = await fetch(`https://api.tcgdex.net/v2/en/cards?name=${encodeURIComponent(searchTerm)}`);
+              if (enRes.ok) {
+                const enBriefs = (await enRes.json() || []).slice(0, 16);
+                const localized = await Promise.all(enBriefs.map(async (eb) => {
+                  try {
+                    const r = await fetch(`https://api.tcgdex.net/v2/${encodeURIComponent(lang)}/cards/${encodeURIComponent(eb.id)}`);
+                    if (!r.ok) return null;
+                    return await r.json();
+                  } catch (e) { return null; }
+                }));
+                for (const d of localized) {
+                  if (!d || !d.image) continue;
+                  const tcgp = d?.pricing?.tcgplayer || {};
+                  const pObj = tcgp.holofoil || tcgp.normal || tcgp['reverse-holofoil'] || {};
+                  const mkt = Number(pObj.marketPrice || pObj.midPrice || d?.pricing?.cardmarket?.avg || 0);
+                  results.push({
+                    name: `${d.name}${d.localId ? ' - ' + d.localId : ''}`,
+                    tcg: 'Pokemon',
+                    language: langLabel,
+                    setName: d.set?.name || `Pokémon (${langLabel})`,
+                    setCode: `${String(d.set?.id || '').toUpperCase()} #${d.localId || ''}`,
+                    rarity: d.rarity || 'Rare',
+                    illustrator: d.illustrator || '',
+                    artist: d.illustrator || '',
+                    imageUrl: `${d.image}/high.webp`,
+                    marketPrice: Number(mkt.toFixed(2)),
+                    tcgplayerUrl: buildTcgPlayerUrl(d.name, 'Pokemon', d.set?.name, d.localId)
+                  });
+                }
+                if (results.length > 0) return results;
+              }
+            }
+          }
+          const hydrated = await Promise.all(briefs.map(async (b) => {
+            try {
+              const r = await fetch(`https://api.tcgdex.net/v2/${encodeURIComponent(lang)}/cards/${encodeURIComponent(b.id)}`);
+              if (!r.ok) return null;
+              const d = await r.json();
+              const tcgp = d?.pricing?.tcgplayer || {};
+              const pObj = tcgp.holofoil || tcgp.normal || {};
+              const mkt = Number(pObj.marketPrice || pObj.midPrice || d?.pricing?.cardmarket?.avg || 0);
+              return {
+                name: `${d.name}${d.localId ? ' - ' + d.localId : ''}`,
+                tcg: 'Pokemon',
+                language: langLabel,
+                setName: d.set?.name || `Pokémon (${langLabel})`,
+                setCode: `${String(d.set?.id || '').toUpperCase()} #${d.localId || ''}`,
+                rarity: d.rarity || 'Rare',
+                illustrator: d.illustrator || '',
+                artist: d.illustrator || '',
+                imageUrl: `${d.image}/high.webp`,
+                marketPrice: Number(mkt.toFixed(2)),
+                tcgplayerUrl: buildTcgPlayerUrl(d.name, 'Pokemon', d.set?.name, d.localId)
+              };
+            } catch (e) { return null; }
+          }));
+          results.push(...hydrated.filter(Boolean));
+        } catch (e) {}
+        return results;
+      }
 
       // 1. Search embedded TCGPlayer / TCGCSV catalog (All Promo sets, 30th Anniversary, Mega Evolution, Scarlet & Violet, SWSH, Classic)
       if (TCGCSV_DATA && Array.isArray(TCGCSV_DATA.cards)) {
@@ -14610,7 +14881,7 @@
       }
     }
 
-    async function searchMTG(query, setCodeFilter = '', sortOrder = 'price_desc') {
+    async function searchMTG(query, setCodeFilter = '', sortOrder = 'price_desc', lang = 'en') {
       try {
         const orderParam = sortOrder === 'price_desc' ? 'usd' : (sortOrder === 'number_asc' ? 'set' : 'released');
         let scryfallQuery = query.trim();
@@ -14622,6 +14893,10 @@
           scryfallQuery = scryfallQuery ? `${scryfallQuery} e:${setCodeFilter}` : `e:${setCodeFilter}`;
         }
         if (!scryfallQuery) scryfallQuery = 'is:promo OR rarity:mythic';
+        if (lang && lang !== 'en') {
+          const sLang = lang === 'zh-tw' ? 'zhs' : lang;
+          scryfallQuery = `${scryfallQuery} lang:${sLang}`;
+        }
 
         const url = `https://api.scryfall.com/cards/search?q=${encodeURIComponent(scryfallQuery)}&unique=prints&order=${orderParam}&dir=desc`;
         const mtgCtrl = new AbortController();
@@ -14629,7 +14904,8 @@
         let res = await fetch(url, { signal: mtgCtrl.signal });
         clearTimeout(mtgTimer);
         if (!res.ok && mtgNumMatch) {
-          const fallbackUrl = `https://api.scryfall.com/cards/search?q=${encodeURIComponent(query.trim() + (setCodeFilter ? ' e:' + setCodeFilter : ''))}&unique=prints&order=${orderParam}&dir=desc`;
+          const sLangSuffix = (lang && lang !== 'en') ? ` lang:${lang === 'zh-tw' ? 'zhs' : lang}` : '';
+          const fallbackUrl = `https://api.scryfall.com/cards/search?q=${encodeURIComponent(query.trim() + (setCodeFilter ? ' e:' + setCodeFilter : '') + sLangSuffix)}&unique=prints&order=${orderParam}&dir=desc`;
           res = await fetch(fallbackUrl);
         }
         if (!res.ok) return [];
@@ -14671,6 +14947,7 @@
             productId: card.tcgplayer_id || null,
             name: displayName,
             tcg: 'MTG',
+            language: LANG_LABELS[lang] || 'English',
             setName: card.set_name || 'Magic Set',
             setCode: `${(card.set || '').toUpperCase()} #${card.collector_number || ''}`,
             rarity: (card.rarity || 'Rare').replace(/\b\w/g, c => c.toUpperCase()),
@@ -14917,6 +15194,7 @@
       let selectedTcg = document.getElementById('searchTcgSelect').value;
       let selectedSet = document.getElementById('searchSetSelect').value;
       const sortOrder = document.getElementById('searchSortSelect').value;
+      const lang = document.getElementById('searchLangSelect')?.value || defaultSearchLanguage || 'en';
       const grid = document.getElementById('searchResultsGrid');
       const statusText = document.getElementById('searchStatusText');
       const countText = document.getElementById('searchCountText');
@@ -14934,7 +15212,7 @@
       }
 
       grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:48px; color:var(--text-secondary);">
-        🔎 Searching official TCGPlayer & Capsule Corp Gear catalogs...
+        🔎 Searching official TCGPlayer &amp; multi-language catalogs (${escapeHtml(LANG_LABELS[lang] || 'English')})...
       </div>`;
       document.getElementById('loadMoreContainer').classList.remove('visible');
 
@@ -14942,19 +15220,19 @@
       let autoSwitchedTcg = '';
 
       if (selectedTcg === 'Pokemon') {
-        combined = await searchPokemon(query, selectedSet, sortOrder);
+        combined = await searchPokemon(query, selectedSet, sortOrder, lang);
       } else if (selectedTcg === 'NarutoKayou') {
         combined = await searchNarutoKayou(query, selectedSet, sortOrder);
       } else if (selectedTcg === 'YuGiOh') {
         combined = await searchYuGiOh(query, selectedSet, sortOrder);
       } else if (selectedTcg === 'MTG') {
-        combined = await searchMTG(query, selectedSet, sortOrder);
+        combined = await searchMTG(query, selectedSet, sortOrder, lang);
       } else {
         const [pkm, kayou, ygo, mtg] = await Promise.all([
-          searchPokemon(query, selectedSet, sortOrder),
+          searchPokemon(query, selectedSet, sortOrder, lang),
           query ? searchNarutoKayou(query, '', sortOrder) : Promise.resolve([]),
           query ? searchYuGiOh(query, '', sortOrder) : Promise.resolve([]),
-          query ? searchMTG(query, '', sortOrder) : Promise.resolve([])
+          query ? searchMTG(query, '', sortOrder, lang) : Promise.resolve([])
         ]);
         combined = [...pkm.slice(0, 30), ...kayou.slice(0, 24), ...ygo.slice(0, 20), ...mtg.slice(0, 20)];
       }
@@ -14962,9 +15240,9 @@
       // Smart Cross-TCG Fallback: if searching by card name/code with no matches in the currently selected TCG, automatically check the other TCG catalogs!
       if (combined.length === 0 && query && !selectedSet && selectedTcg !== 'ALL') {
         const [pkm, ygo, mtg, kayou] = await Promise.all([
-          selectedTcg !== 'Pokemon' ? searchPokemon(query, '', sortOrder) : Promise.resolve([]),
+          selectedTcg !== 'Pokemon' ? searchPokemon(query, '', sortOrder, lang) : Promise.resolve([]),
           selectedTcg !== 'YuGiOh' ? searchYuGiOh(query, '', sortOrder) : Promise.resolve([]),
-          selectedTcg !== 'MTG' ? searchMTG(query, '', sortOrder) : Promise.resolve([]),
+          selectedTcg !== 'MTG' ? searchMTG(query, '', sortOrder, lang) : Promise.resolve([]),
           selectedTcg !== 'NarutoKayou' ? searchNarutoKayou(query, '', sortOrder) : Promise.resolve([])
         ]);
         combined = [...ygo, ...pkm, ...mtg, ...kayou];
@@ -15463,6 +15741,18 @@
 
     document.getElementById('searchSortSelect').addEventListener('change', () => {
       executeMultiTcgSearch();
+    });
+
+    document.getElementById('searchLangSelect')?.addEventListener('change', () => {
+      executeMultiTcgSearch();
+    });
+
+    document.getElementById('btnSetDefaultLang')?.addEventListener('click', () => {
+      const chosen = document.getElementById('searchLangSelect')?.value || 'en';
+      defaultSearchLanguage = chosen;
+      try { localStorage.setItem(DEFAULT_SEARCH_LANG_KEY, chosen); } catch (e) {}
+      updateDefaultLangBtnUI();
+      showToast(`⭐ Default search language set to ${LANG_LABELS[chosen] || chosen}`);
     });
 
     document.querySelectorAll('.quick-chip').forEach(chip => {
@@ -16814,7 +17104,157 @@
       updateInspectorPanel();
     }
 
+    /*************************************************************************
+     * 3D DISPLAY SHELF CURATOR MODAL (PRESETS + CHECKBOX SEARCH)
+     *************************************************************************/
+    function renderRingShelfModalList() {
+      const listEl = document.getElementById('ringShelfCardList');
+      const statsEl = document.getElementById('ringShelfSelectionStats');
+      const q = (document.getElementById('ringShelfSearchInput')?.value || '').trim().toLowerCase();
+      if (!listEl) return;
+
+      document.querySelectorAll('.ring-preset-btn').forEach(btn => {
+        const isActive = btn.dataset.ringMode === ringShelfConfig.mode;
+        btn.classList.toggle('btn-primary', isActive);
+        btn.classList.toggle('active', isActive);
+      });
+
+      const currentlyOnRing = new Set(getRingDisplayCards().map(c => c.id));
+      if (statsEl) {
+        statsEl.textContent = `${currentlyOnRing.size} of ${collection.length} cards shown on 3D Ring`;
+      }
+
+      const matching = collection
+        .slice()
+        .sort((a, b) => (Number(b.marketPrice) || 0) - (Number(a.marketPrice) || 0))
+        .filter(c => {
+          if (!q) return true;
+          const hay = `${c.name || ''} ${c.setName || ''} ${c.setCode || ''} ${c.rarity || ''} ${c.tcg || ''}`.toLowerCase();
+          return hay.includes(q);
+        });
+
+      listEl.innerHTML = '';
+      if (matching.length === 0) {
+        listEl.innerHTML = `<div style="text-align:center; padding:32px; color:var(--text-secondary);">No cards in your vault match "${escapeHtml(q)}"</div>`;
+        return;
+      }
+
+      matching.forEach(card => {
+        const isChecked = ringShelfConfig.mode === 'custom'
+          ? (ringShelfConfig.selectedIds || []).includes(card.id)
+          : currentlyOnRing.has(card.id);
+
+        const row = document.createElement('label');
+        row.style.cssText = 'display:flex; align-items:center; justify-content:space-between; gap:12px; padding:8px 12px; border-radius:9px; cursor:pointer; background:' + (isChecked ? 'rgba(56,189,248,0.12)' : 'rgba(15,23,42,0.75)') + '; border:1px solid ' + (isChecked ? 'rgba(56,189,248,0.45)' : 'rgba(255,255,255,0.08)') + '; transition:all 0.15s;';
+
+        const gradeBadge = card.isGraded
+          ? `<span class="tcgplayer-pill" style="font-size:0.65rem; padding:1px 6px;">🏆 ${escapeHtml(card.gradeCompany)} ${escapeHtml(card.gradeScore)}</span>`
+          : '';
+
+        row.innerHTML = `
+          <div style="display:flex; align-items:center; gap:10px; min-width:0; flex:1;">
+            <input type="checkbox" class="ring-card-checkbox" data-card-id="${escapeHtml(card.id)}" ${isChecked ? 'checked' : ''} style="width:16px; height:16px; accent-color:#38bdf8; cursor:pointer; flex-shrink:0;" />
+            <img src="${escapeHtml(card.imageUrl)}" style="width:30px; height:42px; object-fit:contain; border-radius:4px; background:#090d16; flex-shrink:0;" />
+            <div style="min-width:0;">
+              <div style="font-weight:700; font-size:0.82rem; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(card.name)} ${gradeBadge}</div>
+              <div style="font-size:0.7rem; color:var(--text-secondary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(card.setName)}${card.setCode ? ' • ' + escapeHtml(card.setCode) : ''}</div>
+            </div>
+          </div>
+          <div style="font-family:'JetBrains Mono',monospace; font-size:0.8rem; font-weight:700; color:var(--accent-gold); flex-shrink:0;">${formatUSD(card.marketPrice)}</div>
+        `;
+
+        const cb = row.querySelector('.ring-card-checkbox');
+        cb.addEventListener('change', () => {
+          if (ringShelfConfig.mode !== 'custom') {
+            ringShelfConfig.selectedIds = Array.from(currentlyOnRing);
+            ringShelfConfig.mode = 'custom';
+          }
+          const idSet = new Set(ringShelfConfig.selectedIds || []);
+          if (cb.checked) idSet.add(card.id);
+          else idSet.delete(card.id);
+          ringShelfConfig.selectedIds = Array.from(idSet);
+          saveRingShelfConfig();
+          renderRingShelfModalList();
+          activeCardIndex = 0;
+          renderCarouselRing();
+          snapRingToActiveIndex();
+          updateInspectorPanel();
+        });
+
+        listEl.appendChild(row);
+      });
+    }
+
+    function openRingShelfModal() {
+      const modal = document.getElementById('ringShelfModalBackdrop');
+      if (!modal) return;
+      const searchIn = document.getElementById('ringShelfSearchInput');
+      if (searchIn) searchIn.value = '';
+      renderRingShelfModalList();
+      modal.style.display = 'flex';
+      void modal.offsetWidth;
+      modal.classList.add('open');
+    }
+
+    function closeRingShelfModal() {
+      const modal = document.getElementById('ringShelfModalBackdrop');
+      if (!modal) return;
+      modal.classList.remove('open');
+      setTimeout(() => {
+        if (!modal.classList.contains('open')) modal.style.display = 'none';
+      }, 300);
+    }
+
+    document.getElementById('btnOpenRingShelfModal')?.addEventListener('click', openRingShelfModal);
+    document.getElementById('btnCloseRingShelfModal')?.addEventListener('click', closeRingShelfModal);
+    document.getElementById('btnDoneRingShelfModal')?.addEventListener('click', closeRingShelfModal);
+    document.getElementById('ringShelfModalBackdrop')?.addEventListener('click', (e) => {
+      if (e.target.id === 'ringShelfModalBackdrop') closeRingShelfModal();
+    });
+    document.getElementById('ringShelfSearchInput')?.addEventListener('input', renderRingShelfModalList);
+
+    document.querySelectorAll('.ring-preset-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        ringShelfConfig.mode = btn.dataset.ringMode || 'all';
+        saveRingShelfConfig();
+        activeCardIndex = 0;
+        renderCarouselRing();
+        snapRingToActiveIndex();
+        updateInspectorPanel();
+        renderRingShelfModalList();
+      });
+    });
+
+    document.getElementById('btnRingSelectVisible')?.addEventListener('click', () => {
+      const q = (document.getElementById('ringShelfSearchInput')?.value || '').trim().toLowerCase();
+      const idSet = new Set(ringShelfConfig.mode === 'custom' ? (ringShelfConfig.selectedIds || []) : []);
+      collection.forEach(c => {
+        const hay = `${c.name || ''} ${c.setName || ''} ${c.setCode || ''} ${c.rarity || ''} ${c.tcg || ''}`.toLowerCase();
+        if (!q || hay.includes(q)) idSet.add(c.id);
+      });
+      ringShelfConfig.mode = 'custom';
+      ringShelfConfig.selectedIds = Array.from(idSet);
+      saveRingShelfConfig();
+      activeCardIndex = 0;
+      renderCarouselRing();
+      snapRingToActiveIndex();
+      updateInspectorPanel();
+      renderRingShelfModalList();
+    });
+
+    document.getElementById('btnRingClearSelection')?.addEventListener('click', () => {
+      ringShelfConfig.mode = 'custom';
+      ringShelfConfig.selectedIds = [];
+      saveRingShelfConfig();
+      activeCardIndex = 0;
+      renderCarouselRing();
+      updateInspectorPanel();
+      renderRingShelfModalList();
+    });
+
     // Initialize Application
+    loadDefaultSearchLanguage();
+    loadRingShelfConfig();
     populateSetSelectorForTcg('Pokemon');
     loadGradingShipments();
     loadSavedCustomViews();
