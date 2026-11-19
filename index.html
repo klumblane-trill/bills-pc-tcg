@@ -644,6 +644,67 @@
       grid-template-columns: minmax(0, 1fr) 0px;
     }
 
+    @media (max-width: 1520px), (max-height: 900px) {
+      :root, body[data-theme] {
+        --card-width: 215px;
+        --card-height: 301px;
+      }
+      main.workspace {
+        grid-template-columns: minmax(0, 1fr) 370px;
+      }
+      .stage-container {
+        padding: 12px 18px 14px;
+      }
+      .carousel-viewport {
+        min-height: 290px;
+        perspective: 1350px;
+      }
+      .kpi-card {
+        padding: 6px 12px;
+        min-width: 122px;
+      }
+      .kpi-value {
+        font-size: 0.96rem;
+      }
+      .binder-grid {
+        grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+        gap: 16px;
+      }
+    }
+
+    @media (max-width: 1366px), (max-height: 780px) {
+      :root, body[data-theme] {
+        --card-width: 184px;
+        --card-height: 258px;
+      }
+      main.workspace {
+        grid-template-columns: minmax(0, 1fr) 335px;
+      }
+      header.top-hud {
+        padding: 8px 18px;
+        row-gap: 8px;
+      }
+      .toolbar {
+        padding: 8px 18px;
+        gap: 8px;
+      }
+      .stage-container {
+        padding: 8px 14px 10px;
+      }
+      .carousel-viewport {
+        min-height: 250px;
+        perspective: 1200px;
+      }
+      .carousel-controls-bar {
+        padding: 8px 14px;
+        gap: 10px;
+      }
+      .binder-grid {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 12px;
+      }
+    }
+
     @media (max-width: 1120px) {
       main.workspace {
         grid-template-columns: 1fr;
@@ -653,6 +714,17 @@
       }
       main.workspace.sidebar-collapsed {
         grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 900px), (max-height: 660px) {
+      :root, body[data-theme] {
+        --card-width: 158px;
+        --card-height: 221px;
+      }
+      .carousel-viewport {
+        min-height: 215px;
+        perspective: 1050px;
       }
     }
 
@@ -2399,7 +2471,7 @@
       overflow-x: hidden;
       overscroll-behavior: contain;
       transition: opacity 0.22s ease, visibility 0.22s ease, transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
-      width: 435px;
+      width: 100%;
     }
 
     aside.inspector-panel > * {
@@ -6795,11 +6867,22 @@
 
     function getCarouselRadius(count) {
       if (count <= 1) return 0;
-      if (count === 2) return 230;
-      if (count === 3) return 275;
-      if (count === 4) return 315;
-      return Math.max(360, Math.round((count * 295) / (2 * Math.PI)));
+      const ringEl = document.getElementById('carouselRing');
+      const cw = ringEl ? (parseFloat(getComputedStyle(ringEl).width) || 268) : 268;
+      const scale = Math.max(0.55, Math.min(1, cw / 268));
+      if (count === 2) return Math.round(230 * scale);
+      if (count === 3) return Math.round(275 * scale);
+      if (count === 4) return Math.round(315 * scale);
+      return Math.max(Math.round(360 * scale), Math.round((count * (cw + 26)) / (2 * Math.PI)));
     }
+
+    let resizeCarouselTimer = null;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeCarouselTimer);
+      resizeCarouselTimer = setTimeout(() => {
+        if (typeof activeView !== 'undefined' && activeView === 'carousel') renderCarouselRing();
+      }, 150);
+    });
 
     function getCarouselRingMetrics() {
       const baseCount = Math.max(collection.length, filteredCollection.length, 12);
