@@ -14047,6 +14047,7 @@
     async function searchPokemon(query, setFilterVal = '', sortOrder = 'price_desc') {
       const qLower = query.toLowerCase().trim();
       const results = [];
+      let queryNumberTokens = [];
 
       // 1. Search embedded TCGPlayer / TCGCSV catalog (All Promo sets, 30th Anniversary, Mega Evolution, Scarlet & Violet, SWSH, Classic)
       if (TCGCSV_DATA && Array.isArray(TCGCSV_DATA.cards)) {
@@ -14076,6 +14077,15 @@
           } else {
             const normalizedQ = qLower.replace(/\band\b/g, '&');
             const tokens = normalizedQ.split(/\s+/).filter(Boolean);
+            queryNumberTokens = tokens
+              .map(t => t.replace(/^#/, ''))
+              .filter(t => /^\d+(?:\/[a-z0-9]+)?$/i.test(t) || /^[a-z]{1,4}\d+$/i.test(t))
+              .map(t => ({
+                raw: t,
+                noZero: t.replace(/^0+(\d)/, '$1'),
+                base: t.replace(/^0+(\d)/, '$1').split('/')[0]
+              }));
+
             matched = matched.filter(c => {
               const setMeta = TCGPLAYER_SETS_MAP.get(Number(c.g));
               const setNameLower = setMeta ? setMeta.name.toLowerCase() : '';
@@ -14084,17 +14094,27 @@
               const codeComboNoSpace = `${setAbbrLower}${c.num || ''}`.toLowerCase();
               const nameLower = (c.n || '').toLowerCase();
               const numLower = (c.num || '').toLowerCase();
+              const numNoZero = numLower.replace(/^0+(\d)/, '$1');
+              const numBase = numNoZero.split('/')[0];
               const rarityLower = (c.r || '').toLowerCase();
 
-              return tokens.every(tok =>
-                nameLower.includes(tok) ||
-                numLower.includes(tok) ||
-                rarityLower.includes(tok) ||
-                setNameLower.includes(tok) ||
-                setAbbrLower === tok ||
-                codeCombo.includes(tok) ||
-                codeComboNoSpace.includes(tok)
-              );
+              return tokens.every(tok => {
+                const tokClean = tok.replace(/^#/, '');
+                const tokNoZero = tokClean.replace(/^0+(\d)/, '$1');
+                const tokBase = tokNoZero.split('/')[0];
+                const isNumTok = /^\d+(?:\/[a-z0-9]+)?$/i.test(tokClean);
+                return (
+                  nameLower.includes(tokClean) ||
+                  numLower.includes(tokClean) ||
+                  numNoZero.includes(tokNoZero) ||
+                  (isNumTok && (numBase === tokBase || numNoZero === tokNoZero)) ||
+                  rarityLower.includes(tokClean) ||
+                  setNameLower.includes(tokClean) ||
+                  setAbbrLower === tokClean ||
+                  codeCombo.includes(tokClean) ||
+                  codeComboNoSpace.includes(tokClean)
+                );
+              });
             });
           }
         }
@@ -14152,21 +14172,37 @@
         } catch (e) {}
       }
 
-      if (sortOrder === 'price_desc') {
-        results.sort((a, b) => (b.marketPrice || 0) - (a.marketPrice || 0));
-      } else if (sortOrder === 'price_asc') {
-        results.sort((a, b) => (a.marketPrice || 0) - (b.marketPrice || 0));
-      } else if (sortOrder === 'name_asc') {
-        results.sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
-      } else if (sortOrder === 'name_desc') {
-        results.sort((a, b) => String(b.name || '').localeCompare(String(a.name || '')));
-      } else if (sortOrder === 'number_asc') {
-        results.sort((a, b) => {
+      const getNumberMatchTier = (card) => {
+        if (!queryNumberTokens.length) return 0;
+        const codePart = String(card.setCode || '').split('#').pop().trim().toLowerCase();
+        const numNoZero = codePart.replace(/^0+(\d)/, '$1');
+        const numBase = numNoZero.split('/')[0];
+        for (const nt of queryNumberTokens) {
+          if (numNoZero === nt.noZero || numBase === nt.base) return 2;
+        }
+        return 1;
+      };
+
+      const compareBase = (a, b) => {
+        if (sortOrder === 'price_desc') return (b.marketPrice || 0) - (a.marketPrice || 0);
+        if (sortOrder === 'price_asc') return (a.marketPrice || 0) - (b.marketPrice || 0);
+        if (sortOrder === 'name_asc') return String(a.name || '').localeCompare(String(b.name || ''));
+        if (sortOrder === 'name_desc') return String(b.name || '').localeCompare(String(a.name || ''));
+        if (sortOrder === 'number_asc') {
           const numA = parseInt(String(a.setCode).replace(/\D+/g, ''), 10) || 9999;
           const numB = parseInt(String(b.setCode).replace(/\D+/g, ''), 10) || 9999;
           return numA - numB;
-        });
-      }
+        }
+        return 0;
+      };
+
+      results.sort((a, b) => {
+        if (queryNumberTokens.length > 0) {
+          const tierDiff = getNumberMatchTier(b) - getNumberMatchTier(a);
+          if (tierDiff !== 0) return tierDiff;
+        }
+        return compareBase(a, b);
+      });
 
       return results;
     }
@@ -14578,6 +14614,10 @@
       try {
         const orderParam = sortOrder === 'price_desc' ? 'usd' : (sortOrder === 'number_asc' ? 'set' : 'released');
         let scryfallQuery = query.trim();
+        const mtgNumMatch = scryfallQuery.match(/^(.+?)\s+#?(\d+[a-z]?)$/i);
+        if (mtgNumMatch && !/cn:|number:|set:|e:/i.test(scryfallQuery)) {
+          scryfallQuery = `${mtgNumMatch[1].trim()} cn:${mtgNumMatch[2]}`;
+        }
         if (setCodeFilter) {
           scryfallQuery = scryfallQuery ? `${scryfallQuery} e:${setCodeFilter}` : `e:${setCodeFilter}`;
         }
@@ -14586,8 +14626,12 @@
         const url = `https://api.scryfall.com/cards/search?q=${encodeURIComponent(scryfallQuery)}&unique=prints&order=${orderParam}&dir=desc`;
         const mtgCtrl = new AbortController();
         const mtgTimer = setTimeout(() => mtgCtrl.abort(), 3500);
-        const res = await fetch(url, { signal: mtgCtrl.signal });
+        let res = await fetch(url, { signal: mtgCtrl.signal });
         clearTimeout(mtgTimer);
+        if (!res.ok && mtgNumMatch) {
+          const fallbackUrl = `https://api.scryfall.com/cards/search?q=${encodeURIComponent(query.trim() + (setCodeFilter ? ' e:' + setCodeFilter : ''))}&unique=prints&order=${orderParam}&dir=desc`;
+          res = await fetch(fallbackUrl);
+        }
         if (!res.ok) return [];
         const data = await res.json();
         return (data.data || []).slice(0, 60).map(card => {
