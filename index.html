@@ -3596,10 +3596,10 @@
         <span id="androidSyncDot" style="width:8px; height:8px; border-radius:50%; background:#94a3b8; display:inline-block;"></span>
         <span>📱 Android Sync</span>
       </button>
-      <button class="btn btn-sm" id="btnExportData" title="Backup Bill's PC storage (Cards, Shipments, Want List) to a JSON file">Export PC</button>
-      <label class="btn btn-sm" style="cursor:pointer;" title="Restore Bill's PC storage from a JSON file">
+      <button class="btn btn-sm" id="btnExportData" title="Export your Bill's PC collection to a CSV spreadsheet file">Export PC</button>
+      <label class="btn btn-sm" style="cursor:pointer;" title="Import a CSV, TXT, or JSON collection file into Bill's PC">
         Import PC
-        <input type="file" id="inputImportFile" accept=".json" style="display:none;" />
+        <input type="file" id="inputImportFile" accept=".csv,.txt,.json" style="display:none;" />
       </label>
       <button class="btn btn-sm" id="btnClearVault" style="color:var(--loss-red); border-color:rgba(244,63,94,0.35);" title="Clear vault to a clean blank state">Clear Vault</button>
       <button class="btn btn-sm" id="btnOpenAuthModal" style="border-color:rgba(250,204,21,0.55); color:#facc15; background:rgba(250,204,21,0.1); font-weight:700;" title="Log in or create a free account to save your vault">🔐 Log In / Sign Up</button>
@@ -16025,24 +16025,70 @@
       });
     }
 
+    function escapeCsvCell(val) {
+      const s = String(val ?? '');
+      if (s.includes(',') || s.includes('"') || s.includes('\n') || s.includes('\r')) {
+        return '"' + s.replace(/"/g, '""') + '"';
+      }
+      return s;
+    }
+
     document.getElementById('btnExportData').addEventListener('click', () => {
-      const fullBundle = {
-        updatedAt: Date.now(),
-        uiTheme: document.body.getAttribute('data-theme') || 'obsidian-gold',
-        collection,
-        gradingShipments,
-        wishlist,
-        soldArchive,
-        savedCustomViews
-      };
-      const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(fullBundle, null, 2));
+      if (!collection || collection.length === 0) {
+        showToast('ℹ️ Your vault is currently empty — add some cards before exporting.');
+        return;
+      }
+      const headers = [
+        'Quantity', 'Product Name', 'Product Line', 'Set Name', 'Set Code',
+        'Card Number', 'Rarity', 'Printing', 'Condition', 'Language',
+        'Illustrator', 'Graded', 'Grade Company', 'Grade Score', 'Cert Number',
+        'Purchase Price', 'Grading Cost', 'TCG Market Price', 'TCGplayer Id',
+        'Image URL', 'TCGPlayer URL', 'Notes'
+      ];
+      const csvLines = [headers.map(escapeCsvCell).join(',')];
+
+      for (const c of collection) {
+        const cardNum = String(c.setCode || '').includes('#')
+          ? String(c.setCode).split('#').pop().trim()
+          : (c.setCode || '');
+        const row = [
+          Math.max(1, Number(c.quantity) || 1),
+          c.name || '',
+          c.tcg || 'Pokemon',
+          c.setName || '',
+          c.setCode || '',
+          cardNum,
+          c.rarity || 'Rare',
+          c.variant || 'Holofoil',
+          c.condition || 'NM',
+          c.language || 'English',
+          c.illustrator || c.artist || '',
+          c.isGraded ? 'Yes' : (c.gradingStatus === 'submitted' ? 'Submitted' : 'No'),
+          c.gradeCompany || '',
+          c.gradeScore || '',
+          c.certNumber || '',
+          Number(c.buyPrice || 0).toFixed(2),
+          Number(c.gradingCost || 0).toFixed(2),
+          Number(c.marketPrice || 0).toFixed(2),
+          c.productId || '',
+          c.imageUrl || '',
+          c.tcgplayerUrl || '',
+          c.notes || ''
+        ];
+        csvLines.push(row.map(escapeCsvCell).join(','));
+      }
+
+      const csvContent = '\uFEFF' + csvLines.join('\r\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.setAttribute('href', dataStr);
-      a.setAttribute('download', `Bills_PC_Backup_${new Date().toISOString().slice(0,10)}.json`);
+      a.setAttribute('href', url);
+      a.setAttribute('download', `Bills_PC_Collection_${new Date().toISOString().slice(0,10)}.csv`);
       document.body.appendChild(a);
       a.click();
       a.remove();
-      showToast("💾 Exported Bill's PC full vault backup (Cards, Shipments & Want List)!");
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      showToast(`💾 Exported ${collection.length} cards to CSV!`);
     });
 
     document.getElementById('inputImportFile').addEventListener('change', (e) => {
@@ -16050,50 +16096,129 @@
       if (!file) return;
       const reader = new FileReader();
       reader.onload = (ev) => {
-        try {
-          const imported = JSON.parse(ev.target.result);
-          if (Array.isArray(imported)) {
-            collection = imported;
-            expandMultiQuantityCardsIntoIndividualEntries();
-            repairCollectionPricesFromTcgcsv();
-            saveCollection();
-            activeCardIndex = 0;
-            applyFilters();
-            showToast(`✅ Imported ${collection.length} cards into your vault!`);
-          } else if (imported && typeof imported === 'object' && Array.isArray(imported.collection)) {
-            collection = imported.collection;
-            if (Array.isArray(imported.gradingShipments)) {
-              gradingShipments = imported.gradingShipments;
-              saveGradingShipments();
+        const rawText = String(ev.target.result || '').replace(/^\uFEFF/, '').trim();
+        const fileNameLower = (file.name || '').toLowerCase();
+
+        // 1. JSON Backup Support (backwards compatibility)
+        if (fileNameLower.endsWith('.json') || rawText.startsWith('{') || rawText.startsWith('[')) {
+          try {
+            const imported = JSON.parse(rawText);
+            if (Array.isArray(imported)) {
+              collection = imported;
+              expandMultiQuantityCardsIntoIndividualEntries();
+              repairCollectionPricesFromTcgcsv();
+              saveCollection();
+              activeCardIndex = 0;
+              applyFilters();
+              showToast(`✅ Imported ${collection.length} cards into your vault!`);
+              return;
+            } else if (imported && typeof imported === 'object' && Array.isArray(imported.collection)) {
+              collection = imported.collection;
+              if (Array.isArray(imported.gradingShipments)) {
+                gradingShipments = imported.gradingShipments;
+                saveGradingShipments();
+              }
+              if (Array.isArray(imported.wishlist)) {
+                wishlist = imported.wishlist;
+                saveWishlist();
+              }
+              if (Array.isArray(imported.soldArchive)) {
+                soldArchive = imported.soldArchive;
+                saveSoldArchive();
+              }
+              if (Array.isArray(imported.savedCustomViews)) {
+                savedCustomViews = imported.savedCustomViews;
+                saveCustomViewsToStorage();
+                renderCustomViewSelectUI();
+              }
+              if (imported.uiTheme && THEME_LABELS[imported.uiTheme]) {
+                applyUiTheme(imported.uiTheme, true);
+              }
+              expandMultiQuantityCardsIntoIndividualEntries();
+              repairCollectionPricesFromTcgcsv();
+              saveCollection();
+              activeCardIndex = 0;
+              applyFilters();
+              showToast(`✅ Imported full Bill's PC bundle (${collection.length} cards, ${gradingShipments.length} shipments)!`);
+              return;
             }
-            if (Array.isArray(imported.wishlist)) {
-              wishlist = imported.wishlist;
-              saveWishlist();
-            }
-            if (Array.isArray(imported.soldArchive)) {
-              soldArchive = imported.soldArchive;
-              saveSoldArchive();
-            }
-            if (Array.isArray(imported.savedCustomViews)) {
-              savedCustomViews = imported.savedCustomViews;
-              saveCustomViewsToStorage();
-              renderCustomViewSelectUI();
-            }
-            if (imported.uiTheme && THEME_LABELS[imported.uiTheme]) {
-              applyUiTheme(imported.uiTheme, true);
-            }
-            expandMultiQuantityCardsIntoIndividualEntries();
-            repairCollectionPricesFromTcgcsv();
-            saveCollection();
-            activeCardIndex = 0;
-            applyFilters();
-            showToast(`✅ Imported full Bill's PC bundle (${collection.length} cards, ${gradingShipments.length} shipments)!`);
+          } catch (err) {
+            showToast('⚠️ Invalid JSON backup file.');
+            return;
           }
-        } catch (err) {
-          showToast('⚠️ Invalid JSON backup file.');
+        }
+
+        // 2. Check if it's a Bill's PC CSV Export (direct restore with graded/cert/notes/cost intact)
+        const csvRows = parseCsvDelimitedRows(rawText);
+        const firstRowLower = (csvRows[0] || []).map(h => h.toLowerCase());
+        if (csvRows.length >= 2 && firstRowLower.includes('grade company') && firstRowLower.includes('cert number')) {
+          const colIdx = (name) => firstRowLower.indexOf(name);
+          const importedCards = [];
+          for (let r = 1; r < csvRows.length; r++) {
+            const cols = csvRows[r];
+            const name = cols[colIdx('product name')] || '';
+            if (!name) continue;
+            const qty = Math.max(1, parseInt(cols[colIdx('quantity')], 10) || 1);
+            const gradedFlag = (cols[colIdx('graded')] || '').toLowerCase();
+            const isGraded = gradedFlag === 'yes' || gradedFlag === 'true';
+            const gradingStatus = isGraded ? 'graded' : (gradedFlag === 'submitted' ? 'submitted' : 'raw');
+            const prodIdRaw = cols[colIdx('tcgplayer id')] || '';
+            const prodId = prodIdRaw ? (parseInt(prodIdRaw, 10) || null) : null;
+            const imgUrl = cols[colIdx('image url')] || (prodId ? `https://tcgplayer-cdn.tcgplayer.com/product/${prodId}_in_400x400.jpg` : '');
+
+            for (let q = 0; q < qty; q++) {
+              importedCards.push({
+                id: 'card-' + Date.now() + '-' + importedCards.length + '-' + Math.random().toString(36).slice(2, 6),
+                productId: prodId,
+                name,
+                tcg: cols[colIdx('product line')] || 'Pokemon',
+                setName: cols[colIdx('set name')] || '',
+                setCode: cols[colIdx('set code')] || '',
+                rarity: cols[colIdx('rarity')] || 'Rare',
+                variant: cols[colIdx('printing')] || 'Holofoil',
+                condition: cols[colIdx('condition')] || 'NM',
+                language: cols[colIdx('language')] || 'English',
+                illustrator: cols[colIdx('illustrator')] || '',
+                artist: cols[colIdx('illustrator')] || '',
+                quantity: 1,
+                isGraded,
+                gradingStatus,
+                gradeCompany: cols[colIdx('grade company')] || 'PSA',
+                gradeScore: cols[colIdx('grade score')] || '10',
+                certNumber: cols[colIdx('cert number')] || '',
+                buyPrice: parseTcgpPriceNum(cols[colIdx('purchase price')]),
+                gradingCost: parseTcgpPriceNum(cols[colIdx('grading cost')]),
+                marketPrice: parseTcgpPriceNum(cols[colIdx('tcg market price')]),
+                imageUrl: imgUrl,
+                tcgplayerUrl: cols[colIdx('tcgplayer url')] || buildTcgPlayerUrl(name, cols[colIdx('product line')] || 'Pokemon', cols[colIdx('set name')], cols[colIdx('card number')]),
+                notes: cols[colIdx('notes')] || ''
+              });
+            }
+          }
+          if (importedCards.length > 0) {
+            collection = importedCards;
+            saveCollection();
+            activeCardIndex = 0;
+            applyFilters();
+            updatePortfolioKPIs();
+            showToast(`✅ Imported ${importedCards.length} cards from Bill's PC CSV!`);
+            return;
+          }
+        }
+
+        // 3. Otherwise, open the TCGPlayer CSV / TXT Importer Modal pre-filled with the file!
+        const modal = document.getElementById('tcgpImportModalBackdrop');
+        if (modal) {
+          document.getElementById('tcgpImportTextarea').value = rawText;
+          document.getElementById('tcgpImportFileName').textContent = `📄 Selected: ${file.name}`;
+          modal.style.display = 'flex';
+          void modal.offsetWidth;
+          modal.classList.add('open');
+          parseAndPreviewTcgpInput();
         }
       };
       reader.readAsText(file);
+      e.target.value = '';
     });
 
     const btnClearVault = document.getElementById('btnClearVault');
@@ -16299,7 +16424,7 @@
         const iSet = idxOf('set name', 'set', 'edition');
         const iSetCode = idxOf('set code', 'edition code');
         const iNum = idxOf('card number', 'number', 'collector number', 'num');
-        const iProdId = idxOf('tcgplayer id', 'product id', 'external id', 'tcgplayer_id');
+        const iProdId = idxOf('product id', 'external id', 'tcgplayer id', 'tcgplayer_id');
         const iCond = idxOf('condition', 'cond');
         const iPrint = idxOf('printing', 'variant', 'finish', 'foil');
         const iRarity = idxOf('rarity');
@@ -16312,23 +16437,40 @@
           const cols = csvRows[r];
           const rawName = iName >= 0 ? cols[iName] : '';
           const rawPid = iProdId >= 0 ? cols[iProdId] : '';
-          if (!rawName && !rawPid) continue;
+          const rawPhoto = (iPhoto >= 0 ? cols[iPhoto] : '') || '';
+          const photoPidMatch = rawPhoto.match(/\/product\/(\d+)/);
+          const resolvedPid = photoPidMatch ? parseInt(photoPidMatch[1], 10) : (rawPid ? (parseInt(rawPid, 10) || null) : null);
+          if (!rawName && !resolvedPid) continue;
+
+          const rawGame = iGame >= 0 ? cols[iGame] : '';
+          const rawCond = iCond >= 0 ? cols[iCond] : 'NM';
+          const langHay = `${rawGame} ${rawCond}`.toLowerCase();
+          let detectedLang = 'English';
+          if (langHay.includes('japan')) detectedLang = 'Japanese';
+          else if (langHay.includes('chinese')) detectedLang = 'Chinese';
+          else if (langHay.includes('korean')) detectedLang = 'Korean';
+          else if (langHay.includes('french')) detectedLang = 'French';
+          else if (langHay.includes('german')) detectedLang = 'German';
+          else if (langHay.includes('spanish')) detectedLang = 'Spanish';
+          else if (langHay.includes('italian')) detectedLang = 'Italian';
+          else if (langHay.includes('portuguese')) detectedLang = 'Portuguese';
 
           const qty = iQty >= 0 ? Math.max(1, parseInt(cols[iQty], 10) || 1) : 1;
           parsedItems.push({
             qty,
-            name: rawName || `Card #${rawPid}`,
+            name: rawName || `Card #${resolvedPid}`,
             setName: (iSet >= 0 ? cols[iSet] : '') || '',
             setCode: (iSetCode >= 0 ? cols[iSetCode] : '') || '',
             number: (iNum >= 0 ? cols[iNum] : '') || '',
-            productId: rawPid ? (parseInt(rawPid, 10) || null) : null,
-            condition: normalizeTcgpCondition(iCond >= 0 ? cols[iCond] : 'NM'),
-            variant: normalizeTcgpVariant(iPrint >= 0 ? cols[iPrint] : '', iCond >= 0 ? cols[iCond] : ''),
+            productId: resolvedPid,
+            condition: normalizeTcgpCondition(rawCond),
+            variant: normalizeTcgpVariant(iPrint >= 0 ? cols[iPrint] : '', rawCond),
             rarity: (iRarity >= 0 ? cols[iRarity] : '') || 'Rare',
             marketPrice: parseTcgpPriceNum(iMarket >= 0 ? cols[iMarket] : 0),
             buyPrice: parseTcgpPriceNum(iBuy >= 0 ? cols[iBuy] : 0),
-            tcg: normalizeTcgpGame(iGame >= 0 ? cols[iGame] : '', defaultTcg),
-            imageUrl: (iPhoto >= 0 ? cols[iPhoto] : '') || ''
+            tcg: normalizeTcgpGame(rawGame, defaultTcg),
+            language: detectedLang,
+            imageUrl: resolvedPid ? `https://tcgplayer-cdn.tcgplayer.com/product/${resolvedPid}_in_400x400.jpg` : rawPhoto
           });
         }
       } else {
@@ -16388,19 +16530,20 @@
           if (rec) matched = expandTcgcsvCard(rec);
         }
 
-        // 2. Fuzzy/Exact Name + Number + Set match in embedded TCGCSV database
-        if (!matched && item.tcg === 'Pokemon') {
+        // 2. Fuzzy/Exact Name + Number + Set match in embedded English TCGCSV database (ONLY for English cards!)
+        if (!matched && item.tcg === 'Pokemon' && (!item.language || item.language === 'English')) {
           const rec = findBestLocalPokemonMatch(item.name, item.number, item.setName || item.setCode);
           if (rec) matched = expandTcgcsvCard(rec);
         }
 
-        // 3. Direct TCGPlayer CDN fallback when Product ID is known in CSV
+        // 3. Direct TCGPlayer CDN fallback when Product ID is known in CSV (preserves Japanese / Foreign / Vintage cards!)
         if (!matched && item.productId) {
           const codeStr = item.setCode && item.number ? `${item.setCode} #${item.number}` : (item.number ? `#${item.number}` : (item.setCode || ''));
           matched = {
             productId: item.productId,
             name: item.name,
             tcg: item.tcg,
+            language: item.language || 'English',
             setName: item.setName || `${item.tcg} TCG`,
             setCode: codeStr,
             rarity: item.rarity || 'Rare',
