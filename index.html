@@ -3529,6 +3529,7 @@
         Import PC
         <input type="file" id="inputImportFile" accept=".json" style="display:none;" />
       </label>
+      <button class="btn btn-sm" id="btnOpenTcgpImportModal" style="border-color:rgba(56,189,248,0.45); color:#38bdf8;" title="Import a TCGPlayer CSV or Text Export List into your Vault">📥 Import TCGPlayer</button>
       <button class="btn btn-sm" id="btnClearVault" style="color:var(--loss-red); border-color:rgba(244,63,94,0.35);" title="Clear vault to a clean blank state">Clear Vault</button>
       <button class="btn btn-sm" id="btnOpenAuthModal" style="border-color:rgba(250,204,21,0.55); color:#facc15; background:rgba(250,204,21,0.1); font-weight:700;" title="Log in or create a free account to save your vault">🔐 Log In / Sign Up</button>
       <div id="authUserPill" style="display:none; align-items:center; gap:8px; padding:4px 10px; border-radius:999px; background:rgba(16,185,129,0.12); border:1px solid rgba(16,185,129,0.35); font-size:0.76rem; color:#a7f3d0;">
@@ -5394,6 +5395,64 @@
           <div id="authModalMessage" style="display:none; font-size:0.8rem; padding:9px 12px; border-radius:8px; line-height:1.4;"></div>
           <button type="submit" class="btn btn-primary" id="authSubmitBtn" style="padding:11px; font-weight:700; font-size:0.9rem;">Log In</button>
         </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       MODAL: IMPORT TCGPLAYER EXPORT LIST (CSV OR TEXT)
+       ============================================================ -->
+  <div class="modal-backdrop" id="tcgpImportModalBackdrop" style="z-index: 120;">
+    <div class="search-modal" style="max-width: 820px; max-height: 88vh;">
+      <div class="modal-header">
+        <div class="modal-title">
+          <span style="font-size:1.15rem;">📥</span>
+          <span>Import TCGPlayer Export List (CSV or Text)</span>
+        </div>
+        <button class="modal-close-btn" id="btnCloseTcgpImportModal">&times;</button>
+      </div>
+
+      <div style="padding:18px 22px; display:flex; flex-direction:column; gap:14px; overflow-y:auto; flex:1;">
+        <div style="background:rgba(56,189,248,0.08); border:1px solid rgba(56,189,248,0.28); border-radius:10px; padding:12px 14px; font-size:0.8rem; color:var(--text-secondary); line-height:1.45;">
+          <strong style="color:#38bdf8;">Supported Formats:</strong>
+          <ul style="margin:6px 0 0 18px; padding:0;">
+            <li><strong>TCGPlayer App / Website CSV Export</strong> (supports <code>Quantity</code>, <code>Name</code> / <code>Product Name</code>, <code>Set</code>, <code>Card Number</code>, <code>Condition</code>, <code>Printing</code>, <code>TCGplayer Id</code> / <code>Product ID</code>, <code>Price</code>)</li>
+            <li><strong>TCGPlayer Text Export / Mass Entry</strong> (e.g. <code>1 Umbreon VMAX [SWSH07] 215/203</code> or <code>2x Lightning Bolt (M10)</code>)</li>
+          </ul>
+        </div>
+
+        <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+          <label class="btn btn-primary btn-sm" style="cursor:pointer; padding:8px 14px;">
+            📂 Choose .CSV / .TXT File
+            <input type="file" id="inputTcgpImportFile" accept=".csv,.txt,.tsv" style="display:none;" />
+          </label>
+          <span id="tcgpImportFileName" style="font-size:0.78rem; color:var(--text-muted);">No file selected — or paste your list below</span>
+        </div>
+
+        <div>
+          <label for="tcgpImportTextarea" style="display:block; font-size:0.76rem; font-weight:600; color:var(--text-secondary); margin-bottom:5px;">Paste TCGPlayer CSV or Text List</label>
+          <textarea id="tcgpImportTextarea" class="form-control" rows="6" placeholder="Paste CSV content or lines like:&#10;1 Charizard ex - 199/165 [MEW]&#10;2 Umbreon VMAX [SWSH07] 215/203&#10;1 Lightning Bolt [M10]" style="font-family:'JetBrains Mono',monospace; font-size:0.75rem; resize:vertical;"></textarea>
+        </div>
+
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <label for="tcgpImportDefaultTcg" style="font-size:0.76rem; color:var(--text-secondary); margin:0;">Default TCG (if unspecified):</label>
+            <select id="tcgpImportDefaultTcg" class="form-control" style="width:auto; padding:4px 10px; font-size:0.76rem;">
+              <option value="Pokemon">Pokémon</option>
+              <option value="MTG">Magic: The Gathering</option>
+              <option value="YuGiOh">Yu-Gi-Oh!</option>
+            </select>
+          </div>
+          <button type="button" class="btn btn-tcgplayer btn-sm" id="btnParseTcgpPreview" style="padding:7px 16px; font-weight:700;">🔍 Parse &amp; Preview Cards</button>
+        </div>
+
+        <div id="tcgpImportPreviewWrap" style="display:none; border-top:1px solid rgba(255,255,255,0.1); padding-top:14px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; gap:10px; flex-wrap:wrap;">
+            <span id="tcgpImportPreviewSummary" style="font-size:0.84rem; font-weight:700; color:#fff;">0 cards ready</span>
+            <button type="button" class="btn btn-primary btn-sm" id="btnConfirmTcgpImport" style="padding:8px 18px; font-weight:700;">✅ Import Into Vault</button>
+          </div>
+          <div id="tcgpImportPreviewList" style="max-height:240px; overflow-y:auto; display:flex; flex-direction:column; gap:6px;"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -15653,6 +15712,517 @@
       document.querySelectorAll('.tcg-pill-btn').forEach(b => b.classList.toggle('active', b.dataset.filter === 'ALL'));
       activeCardIndex = 0;
       applyFilters();
+    }
+
+    /*************************************************************************
+     * TCGPLAYER CSV & TEXT LIST IMPORTER
+     *************************************************************************/
+    let pendingTcgpImportCards = [];
+
+    function parseCsvDelimitedRows(text) {
+      const cleanText = String(text || '').replace(/^\uFEFF/, '').trim();
+      if (!cleanText) return [];
+      const firstLine = cleanText.split(/\r?\n/)[0] || '';
+      const tabCount = (firstLine.match(/\t/g) || []).length;
+      const commaCount = (firstLine.match(/,/g) || []).length;
+      const delim = tabCount > commaCount ? '\t' : ',';
+
+      const rows = [];
+      let currentRow = [];
+      let currentVal = '';
+      let inQuotes = false;
+
+      for (let i = 0; i < cleanText.length; i++) {
+        const ch = cleanText[i];
+        const nextCh = cleanText[i + 1];
+        if (inQuotes) {
+          if (ch === '"' && nextCh === '"') {
+            currentVal += '"';
+            i++;
+          } else if (ch === '"') {
+            inQuotes = false;
+          } else {
+            currentVal += ch;
+          }
+        } else {
+          if (ch === '"') {
+            inQuotes = true;
+          } else if (ch === delim) {
+            currentRow.push(currentVal.trim());
+            currentVal = '';
+          } else if (ch === '\r' && nextCh === '\n') {
+            currentRow.push(currentVal.trim());
+            if (currentRow.some(cell => cell !== '')) rows.push(currentRow);
+            currentRow = [];
+            currentVal = '';
+            i++;
+          } else if (ch === '\n' || ch === '\r') {
+            currentRow.push(currentVal.trim());
+            if (currentRow.some(cell => cell !== '')) rows.push(currentRow);
+            currentRow = [];
+            currentVal = '';
+          } else {
+            currentVal += ch;
+          }
+        }
+      }
+      if (currentVal !== '' || currentRow.length > 0) {
+        currentRow.push(currentVal.trim());
+        if (currentRow.some(cell => cell !== '')) rows.push(currentRow);
+      }
+      return rows;
+    }
+
+    function normalizeTcgpCondition(rawCond) {
+      const c = String(rawCond || '').toLowerCase();
+      if (c.includes('lightly') || c === 'lp') return 'LP';
+      if (c.includes('moderately') || c === 'mp') return 'MP';
+      if (c.includes('heavily') || c === 'hp') return 'HP';
+      if (c.includes('damaged') || c === 'dmg') return 'DMG';
+      return 'NM';
+    }
+
+    function normalizeTcgpVariant(rawPrinting, rawCond) {
+      const p = `${rawPrinting || ''} ${rawCond || ''}`.toLowerCase();
+      if (p.includes('reverse')) return 'Reverse Holofoil';
+      if (p.includes('1st')) return '1st Edition';
+      if (p.includes('etched')) return 'Etched Foil';
+      if (p.includes('foil') || p.includes('holo')) return 'Holofoil';
+      if (p.includes('normal') || p.includes('non-foil')) return 'Normal';
+      return '';
+    }
+
+    function normalizeTcgpGame(rawLine, defaultTcg) {
+      const s = String(rawLine || '').toLowerCase();
+      if (s.includes('magic') || s === 'mtg') return 'MTG';
+      if (s.includes('yugioh') || s.includes('yu-gi-oh')) return 'YuGiOh';
+      if (s.includes('pokemon') || s.includes('pokémon')) return 'Pokemon';
+      return defaultTcg || 'Pokemon';
+    }
+
+    function parseTcgpPriceNum(val) {
+      if (!val) return 0;
+      const num = parseFloat(String(val).replace(/[^0-9.]/g, ''));
+      return isNaN(num) ? 0 : Number(num.toFixed(2));
+    }
+
+    function findBestLocalPokemonMatch(name, num, setName) {
+      if (!TCGCSV_DATA || !Array.isArray(TCGCSV_DATA.cards)) return null;
+      const nameLower = String(name || '').toLowerCase().replace(/\s*-\s*\d+\/\d+.*$/, '').trim();
+      const numClean = String(num || '').split('/')[0].replace(/^0+(\d)/, '$1').toLowerCase().trim();
+      const setLower = String(setName || '').toLowerCase().trim();
+
+      let bestRec = null;
+      let bestScore = -1;
+
+      for (const rec of TCGCSV_DATA.cards) {
+        const recName = String(rec.n || '').toLowerCase();
+        if (!recName.includes(nameLower) && !nameLower.includes(recName.split(' - ')[0])) continue;
+
+        let score = 0;
+        if (recName === nameLower || recName.startsWith(nameLower + ' ')) score += 10;
+        else score += 4;
+
+        const recNumClean = String(rec.num || '').split('/')[0].replace(/^0+(\d)/, '$1').toLowerCase().trim();
+        if (numClean && recNumClean === numClean) score += 15;
+
+        if (setLower) {
+          const setMeta = TCGPLAYER_SETS_MAP.get(Number(rec.g));
+          if (setMeta) {
+            const sName = String(setMeta.name || '').toLowerCase();
+            const sAbbr = String(setMeta.abbr || '').toLowerCase();
+            if (sAbbr === setLower || sName === setLower || sName.includes(setLower) || setLower.includes(sAbbr)) {
+              score += 12;
+            }
+          }
+        }
+        if (score > bestScore) {
+          bestScore = score;
+          bestRec = rec;
+        }
+      }
+      return bestScore >= 10 ? bestRec : null;
+    }
+
+    async function parseAndPreviewTcgpInput() {
+      const rawText = (document.getElementById('tcgpImportTextarea')?.value || '').trim();
+      const defaultTcg = document.getElementById('tcgpImportDefaultTcg')?.value || 'Pokemon';
+      const previewWrap = document.getElementById('tcgpImportPreviewWrap');
+      const previewList = document.getElementById('tcgpImportPreviewList');
+      const summaryEl = document.getElementById('tcgpImportPreviewSummary');
+
+      if (!rawText) {
+        showToast('⚠️ Please choose a file or paste a TCGPlayer list first.');
+        return;
+      }
+
+      if (previewWrap) previewWrap.style.display = 'block';
+      if (summaryEl) summaryEl.textContent = '⏳ Parsing & matching cards...';
+      if (previewList) previewList.innerHTML = '';
+
+      const parsedItems = [];
+      const csvRows = parseCsvDelimitedRows(rawText);
+      const firstRowLower = (csvRows[0] || []).map(h => h.toLowerCase());
+      const isCsvWithHeader = csvRows.length >= 2 && firstRowLower.some(h =>
+        ['name', 'product name', 'card name', 'simple name', 'title', 'tcgplayer id', 'product id'].includes(h)
+      );
+
+      if (isCsvWithHeader) {
+        const idxOf = (...names) => {
+          for (const n of names) {
+            const idx = firstRowLower.indexOf(n);
+            if (idx !== -1) return idx;
+          }
+          return -1;
+        };
+
+        const iQty = idxOf('quantity', 'total quantity', 'qty', 'add to quantity', 'count');
+        const iName = idxOf('product name', 'name', 'card name', 'simple name', 'title');
+        const iSet = idxOf('set name', 'set', 'edition');
+        const iSetCode = idxOf('set code', 'edition code');
+        const iNum = idxOf('card number', 'number', 'collector number', 'num');
+        const iProdId = idxOf('tcgplayer id', 'product id', 'external id', 'tcgplayer_id');
+        const iCond = idxOf('condition', 'cond');
+        const iPrint = idxOf('printing', 'variant', 'finish', 'foil');
+        const iRarity = idxOf('rarity');
+        const iMarket = idxOf('tcg market price', 'market price', 'price', 'price each', 'tcg marketplace price');
+        const iBuy = idxOf('price bought', 'purchase price', 'buy price', 'cost');
+        const iGame = idxOf('product line', 'game', 'tcg', 'category');
+        const iPhoto = idxOf('photo url', 'image url', 'image');
+
+        for (let r = 1; r < csvRows.length; r++) {
+          const cols = csvRows[r];
+          const rawName = iName >= 0 ? cols[iName] : '';
+          const rawPid = iProdId >= 0 ? cols[iProdId] : '';
+          if (!rawName && !rawPid) continue;
+
+          const qty = iQty >= 0 ? Math.max(1, parseInt(cols[iQty], 10) || 1) : 1;
+          parsedItems.push({
+            qty,
+            name: rawName || `Card #${rawPid}`,
+            setName: (iSet >= 0 ? cols[iSet] : '') || '',
+            setCode: (iSetCode >= 0 ? cols[iSetCode] : '') || '',
+            number: (iNum >= 0 ? cols[iNum] : '') || '',
+            productId: rawPid ? (parseInt(rawPid, 10) || null) : null,
+            condition: normalizeTcgpCondition(iCond >= 0 ? cols[iCond] : 'NM'),
+            variant: normalizeTcgpVariant(iPrint >= 0 ? cols[iPrint] : '', iCond >= 0 ? cols[iCond] : ''),
+            rarity: (iRarity >= 0 ? cols[iRarity] : '') || 'Rare',
+            marketPrice: parseTcgpPriceNum(iMarket >= 0 ? cols[iMarket] : 0),
+            buyPrice: parseTcgpPriceNum(iBuy >= 0 ? cols[iBuy] : 0),
+            tcg: normalizeTcgpGame(iGame >= 0 ? cols[iGame] : '', defaultTcg),
+            imageUrl: (iPhoto >= 0 ? cols[iPhoto] : '') || ''
+          });
+        }
+      } else {
+        // Parse as TCGPlayer Text / Mass Entry lines
+        const lines = rawText.split(/\r?\n/).map(l => l.trim()).filter(l => l && !l.startsWith('//') && !l.startsWith('#'));
+        for (const line of lines) {
+          let rest = line;
+          let qty = 1;
+          const qtyMatch = rest.match(/^(\d+)\s*x?\s+(.+)$/i);
+          if (qtyMatch) {
+            qty = Math.max(1, parseInt(qtyMatch[1], 10) || 1);
+            rest = qtyMatch[2].trim();
+          }
+
+          let setName = '';
+          const bracketMatch = rest.match(/\[([^\]]+)\]/);
+          if (bracketMatch) {
+            setName = bracketMatch[1].trim();
+            rest = rest.replace(bracketMatch[0], '').trim();
+          }
+
+          let number = '';
+          const numMatch = rest.match(/(?:\s-\s*|\s+#?|\()(\d+\/\d+|\d+|[A-Z]{1,4}\d+)\)?$/i);
+          if (numMatch && !/^\d{4}$/.test(numMatch[1])) {
+            number = numMatch[1].trim();
+            rest = rest.slice(0, numMatch.index).trim();
+          }
+
+          parsedItems.push({
+            qty,
+            name: rest.replace(/\s*-\s*$/, '').trim(),
+            setName,
+            setCode: setName,
+            number,
+            productId: null,
+            condition: 'NM',
+            variant: '',
+            rarity: 'Rare',
+            marketPrice: 0,
+            buyPrice: 0,
+            tcg: defaultTcg,
+            imageUrl: ''
+          });
+        }
+      }
+
+      // Resolve and enrich each item
+      const resolvedCards = [];
+      let totalCopies = 0;
+
+      for (const item of parsedItems) {
+        let matched = null;
+
+        // 1. Exact Product ID match in embedded TCGCSV database
+        if (item.productId && TCGCSV_DATA && Array.isArray(TCGCSV_DATA.cards)) {
+          const rec = TCGCSV_DATA.cards.find(c => Number(c.p) === Number(item.productId));
+          if (rec) matched = expandTcgcsvCard(rec);
+        }
+
+        // 2. Fuzzy/Exact Name + Number + Set match in embedded TCGCSV database
+        if (!matched && item.tcg === 'Pokemon') {
+          const rec = findBestLocalPokemonMatch(item.name, item.number, item.setName || item.setCode);
+          if (rec) matched = expandTcgcsvCard(rec);
+        }
+
+        // 3. Direct TCGPlayer CDN fallback when Product ID is known in CSV
+        if (!matched && item.productId) {
+          const codeStr = item.setCode && item.number ? `${item.setCode} #${item.number}` : (item.number ? `#${item.number}` : (item.setCode || ''));
+          matched = {
+            productId: item.productId,
+            name: item.name,
+            tcg: item.tcg,
+            setName: item.setName || `${item.tcg} TCG`,
+            setCode: codeStr,
+            rarity: item.rarity || 'Rare',
+            imageUrl: item.imageUrl || `https://tcgplayer-cdn.tcgplayer.com/product/${item.productId}_in_400x400.jpg`,
+            defaultVariant: item.variant || 'Holofoil',
+            marketPrice: item.marketPrice || 0,
+            tcgplayerUrl: `https://www.tcgplayer.com/product/${item.productId}`
+          };
+        }
+
+        // 4. Online fallback lookup for text lists without Product ID (Scryfall / TCGdex / YGOPRODeck)
+        if (!matched) {
+          if (item.tcg === 'MTG') {
+            try {
+              const res = await fetch(`https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(item.name)}`);
+              if (res.ok) {
+                const mc = await res.json();
+                const img = mc.image_uris?.normal || mc.card_faces?.[0]?.image_uris?.normal || '';
+                if (img) {
+                  matched = {
+                    productId: mc.tcgplayer_id || null,
+                    name: mc.name,
+                    tcg: 'MTG',
+                    setName: mc.set_name || item.setName || 'Magic: The Gathering',
+                    setCode: `${(mc.set || '').toUpperCase()} #${mc.collector_number || ''}`,
+                    rarity: (mc.rarity || 'Rare').replace(/\b\w/g, ch => ch.toUpperCase()),
+                    illustrator: mc.artist || '',
+                    artist: mc.artist || '',
+                    imageUrl: img,
+                    defaultVariant: item.variant || 'Normal',
+                    marketPrice: parseFloat(mc.prices?.usd || mc.prices?.usd_foil || '0') || item.marketPrice || 0,
+                    tcgplayerUrl: mc.purchase_uris?.tcgplayer || buildTcgPlayerUrl(mc.name, 'MTG', mc.set_name)
+                  };
+                }
+              }
+            } catch (e) {}
+          } else if (item.tcg === 'YuGiOh') {
+            try {
+              const res = await fetch(`https://db.ygoprodeck.com/api/v7/cardinfo.php?fname=${encodeURIComponent(item.name)}`);
+              if (res.ok) {
+                const yd = await res.json();
+                const yc = yd?.data?.[0];
+                if (yc) {
+                  matched = {
+                    name: yc.name,
+                    tcg: 'YuGiOh',
+                    setName: item.setName || yc.card_sets?.[0]?.set_name || 'Yu-Gi-Oh! TCG',
+                    setCode: item.setCode || yc.card_sets?.[0]?.set_code || 'YGO',
+                    rarity: item.rarity || yc.card_sets?.[0]?.set_rarity || 'Rare',
+                    imageUrl: yc.card_images?.[0]?.image_url || '',
+                    defaultVariant: item.variant || '1st Edition',
+                    marketPrice: parseFloat(yc.card_prices?.[0]?.tcgplayer_price || '0') || item.marketPrice || 0,
+                    tcgplayerUrl: buildTcgPlayerUrl(yc.name, 'YuGiOh', item.setName)
+                  };
+                }
+              }
+            } catch (e) {}
+          } else if (item.tcg === 'Pokemon') {
+            try {
+              const res = await fetch(`https://api.tcgdex.net/v2/en/cards?name=${encodeURIComponent(item.name)}`);
+              if (res.ok) {
+                const list = await res.json();
+                if (Array.isArray(list) && list.length > 0) {
+                  const numClean = String(item.number || '').split('/')[0].replace(/^0+(\d)/, '$1').toLowerCase();
+                  const best = (numClean && list.find(c => String(c.localId || '').replace(/^0+(\d)/, '$1').toLowerCase() === numClean)) || list[0];
+                  if (best && best.image) {
+                    const setId = String(best.id || '').split('-')[0].toUpperCase();
+                    matched = {
+                      name: best.name,
+                      tcg: 'Pokemon',
+                      setName: item.setName || (setId ? `Pokémon (${setId})` : 'Pokémon TCG'),
+                      setCode: `${setId} #${best.localId || ''}`,
+                      rarity: item.rarity || 'Rare',
+                      imageUrl: `${best.image}/low.webp`,
+                      defaultVariant: item.variant || 'Holofoil',
+                      marketPrice: item.marketPrice || 0,
+                      tcgplayerUrl: buildTcgPlayerUrl(best.name, 'Pokemon', setId, best.localId)
+                    };
+                  }
+                }
+              }
+            } catch (e) {}
+          }
+        }
+
+        // 5. Fallback basic card object if nothing external matched
+        if (!matched) {
+          matched = {
+            name: item.name,
+            tcg: item.tcg,
+            setName: item.setName || `${item.tcg} TCG`,
+            setCode: item.number ? `${item.setCode ? item.setCode + ' ' : ''}#${item.number}` : (item.setCode || ''),
+            rarity: item.rarity || 'Rare',
+            imageUrl: item.imageUrl || 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="280"><rect width="200" height="280" fill="%231e293b"/><text x="100" y="140" fill="%2394a3b8" font-family="sans-serif" font-size="13" text-anchor="middle">Card</text></svg>',
+            defaultVariant: item.variant || 'Holofoil',
+            marketPrice: item.marketPrice || 0,
+            tcgplayerUrl: buildTcgPlayerUrl(item.name, item.tcg, item.setName, item.number)
+          };
+        }
+
+        const finalVariant = item.variant || matched.defaultVariant || 'Holofoil';
+        const finalPrice = matched.marketPrice > 0 ? matched.marketPrice : (item.marketPrice || 0);
+
+        totalCopies += item.qty;
+        resolvedCards.push({
+          qty: item.qty,
+          condition: item.condition,
+          variant: finalVariant,
+          buyPrice: item.buyPrice || 0,
+          marketPrice: finalPrice,
+          card: matched
+        });
+      }
+
+      pendingTcgpImportCards = resolvedCards;
+
+      if (summaryEl) {
+        summaryEl.textContent = `✅ Ready to import ${totalCopies} ${totalCopies === 1 ? 'card' : 'cards'} (${resolvedCards.length} unique entries)`;
+      }
+
+      if (previewList) {
+        previewList.innerHTML = '';
+        resolvedCards.forEach(entry => {
+          const row = document.createElement('div');
+          row.style.cssText = 'display:flex; align-items:center; justify-content:space-between; gap:10px; padding:7px 10px; background:rgba(15,23,42,0.75); border:1px solid rgba(255,255,255,0.08); border-radius:8px; font-size:0.78rem;';
+          row.innerHTML = `
+            <div style="display:flex; align-items:center; gap:10px; min-width:0;">
+              <img src="${escapeHtml(entry.card.imageUrl)}" style="width:32px; height:44px; object-fit:contain; border-radius:4px; background:#0f172a; flex-shrink:0;" />
+              <div style="min-width:0;">
+                <div style="font-weight:700; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${entry.qty}x ${escapeHtml(entry.card.name)}</div>
+                <div style="font-size:0.7rem; color:var(--text-secondary);">${escapeHtml(entry.card.setName)} ${entry.card.setCode ? '• ' + escapeHtml(entry.card.setCode) : ''} • ${escapeHtml(entry.variant)} (${escapeHtml(entry.condition)})</div>
+              </div>
+            </div>
+            <div style="font-family:'JetBrains Mono',monospace; font-weight:700; color:var(--accent-gold); flex-shrink:0;">${formatUSD(entry.marketPrice)}</div>
+          `;
+          previewList.appendChild(row);
+        });
+      }
+    }
+
+    const btnOpenTcgpImport = document.getElementById('btnOpenTcgpImportModal');
+    if (btnOpenTcgpImport) {
+      btnOpenTcgpImport.addEventListener('click', () => {
+        const modal = document.getElementById('tcgpImportModalBackdrop');
+        if (!modal) return;
+        pendingTcgpImportCards = [];
+        document.getElementById('tcgpImportPreviewWrap').style.display = 'none';
+        document.getElementById('tcgpImportTextarea').value = '';
+        document.getElementById('tcgpImportFileName').textContent = 'No file selected — or paste your list below';
+        modal.style.display = 'flex';
+        void modal.offsetWidth;
+        modal.classList.add('open');
+      });
+    }
+
+    const closeTcgpImportModal = () => {
+      const modal = document.getElementById('tcgpImportModalBackdrop');
+      if (!modal) return;
+      modal.classList.remove('open');
+      setTimeout(() => {
+        if (!modal.classList.contains('open')) modal.style.display = 'none';
+      }, 300);
+    };
+
+    const btnCloseTcgpImport = document.getElementById('btnCloseTcgpImportModal');
+    if (btnCloseTcgpImport) btnCloseTcgpImport.addEventListener('click', closeTcgpImportModal);
+
+    const tcgpImportBackdrop = document.getElementById('tcgpImportModalBackdrop');
+    if (tcgpImportBackdrop) {
+      tcgpImportBackdrop.addEventListener('click', (e) => {
+        if (e.target === tcgpImportBackdrop) closeTcgpImportModal();
+      });
+    }
+
+    const inputTcgpFile = document.getElementById('inputTcgpImportFile');
+    if (inputTcgpFile) {
+      inputTcgpFile.addEventListener('change', (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        document.getElementById('tcgpImportFileName').textContent = `📄 Selected: ${file.name}`;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          document.getElementById('tcgpImportTextarea').value = ev.target.result || '';
+          parseAndPreviewTcgpInput();
+        };
+        reader.readAsText(file);
+        e.target.value = '';
+      });
+    }
+
+    const btnParseTcgp = document.getElementById('btnParseTcgpPreview');
+    if (btnParseTcgp) btnParseTcgp.addEventListener('click', parseAndPreviewTcgpInput);
+
+    const btnConfirmTcgp = document.getElementById('btnConfirmTcgpImport');
+    if (btnConfirmTcgp) {
+      btnConfirmTcgp.addEventListener('click', () => {
+        if (!pendingTcgpImportCards.length) {
+          showToast('⚠️ No parsed cards to import.');
+          return;
+        }
+        let addedCount = 0;
+        const newEntries = [];
+        for (const entry of pendingTcgpImportCards) {
+          for (let q = 0; q < entry.qty; q++) {
+            const c = entry.card;
+            newEntries.push({
+              id: 'card-' + Date.now() + '-' + addedCount + '-' + Math.random().toString(36).slice(2, 6),
+              productId: c.productId || null,
+              groupId: c.groupId || null,
+              name: c.name,
+              tcg: c.tcg || 'Pokemon',
+              setName: c.setName || 'Trading Card',
+              setCode: c.setCode || '',
+              rarity: c.rarity || 'Rare',
+              illustrator: c.illustrator || '',
+              artist: c.artist || '',
+              imageUrl: c.imageUrl,
+              variant: entry.variant,
+              condition: entry.condition,
+              quantity: 1,
+              isGraded: false,
+              gradingStatus: 'raw',
+              buyPrice: entry.buyPrice || 0,
+              gradingCost: 0,
+              marketPrice: entry.marketPrice || 0,
+              variantPrices: c.variantPrices || {},
+              tcgplayerUrl: c.tcgplayerUrl || buildTcgPlayerUrl(c.name, c.tcg || 'Pokemon', c.setName, c.setCode),
+              notes: 'Imported from TCGPlayer export'
+            });
+            addedCount++;
+          }
+        }
+        collection.unshift(...newEntries);
+        saveCollection();
+        activeCardIndex = 0;
+        applyFilters();
+        updatePortfolioKPIs();
+        closeTcgpImportModal();
+        showToast(`✅ Imported ${addedCount} ${addedCount === 1 ? 'card' : 'cards'} from TCGPlayer into your Vault!`);
+      });
     }
 
     function showToast(msg) {
