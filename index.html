@@ -3529,7 +3529,6 @@
         Import PC
         <input type="file" id="inputImportFile" accept=".json" style="display:none;" />
       </label>
-      <button class="btn btn-sm" id="btnOpenTcgpImportModal" style="border-color:rgba(56,189,248,0.45); color:#38bdf8;" title="Import a TCGPlayer CSV or Text Export List into your Vault">📥 Import TCGPlayer</button>
       <button class="btn btn-sm" id="btnClearVault" style="color:var(--loss-red); border-color:rgba(244,63,94,0.35);" title="Clear vault to a clean blank state">Clear Vault</button>
       <button class="btn btn-sm" id="btnOpenAuthModal" style="border-color:rgba(250,204,21,0.55); color:#facc15; background:rgba(250,204,21,0.1); font-weight:700;" title="Log in or create a free account to save your vault">🔐 Log In / Sign Up</button>
       <div id="authUserPill" style="display:none; align-items:center; gap:8px; padding:4px 10px; border-radius:999px; background:rgba(16,185,129,0.12); border:1px solid rgba(16,185,129,0.35); font-size:0.76rem; color:#a7f3d0;">
@@ -3632,7 +3631,9 @@
         <span>🛒 Want Sheet</span>
       </button>
 
-      
+      <button type="button" class="btn btn-sm" id="btnOpenTcgpImportModal" title="Import a TCGPlayer CSV or Text Export List into your Vault" style="display:inline-flex; align-items:center; gap:5px; border-color:rgba(56,189,248,0.45); color:#38bdf8;">
+        <span>📥 Import TCGPlayer</span>
+      </button>
 
       <button type="button" class="btn btn-sm" id="btnToggleSidebar" title="Toggle right card inspector sidebar" style="display:inline-flex; align-items:center; gap:6px;">
         <span id="sidebarToggleIcon">◧</span>
